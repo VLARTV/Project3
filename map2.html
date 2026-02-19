@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Карта основных сражений 1941 – 1945</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            flex: 1;
+        }
+
+        header {
+            text-align: center;
+            padding: 30px 0;
+            background-color: #2c3e50;
+            color: white;
+            margin-bottom: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .map-container {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            position: relative;
+            flex: 1;
+        }
+
+        .map-wrapper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            min-height: 600px;
+            overflow: hidden;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        #russia-map {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+
+        .battle-marker {
+            position: absolute;
+            width: 15px;
+            height: 15px;
+            background-color: #e74c3c;
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.6);
+            cursor: pointer;
+            transition: transform 0.3s, background-color 0.3s, box-shadow 0.3s;
+            z-index: 10;
+        }
+
+        .battle-marker:hover {
+            transform: scale(1.4);
+            background-color: #c0392b;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.8);
+            z-index: 20;
+        }
+
+        .battle-marker.active {
+            transform: scale(1.6);
+            background-color: #2980b9;
+            box-shadow: 0 0 20px rgba(41, 128, 185, 0.8);
+            z-index: 30;
+        }
+
+        .battle-tooltip {
+            position: absolute;
+            background-color: rgba(44, 62, 80, 0.95);
+            color: white;
+            padding: 15px;
+            border-radius: 6px;
+            width: 350px;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+            display: none;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .battle-tooltip h3 {
+            color: #3498db;
+            margin-bottom: 10px;
+            font-size: 1.3rem;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 5px;
+        }
+
+        .battle-tooltip p {
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .battle-tooltip .date {
+            color: #f1c40f;
+            font-weight: bold;
+        }
+
+        .battle-tooltip .location {
+            color: #2ecc71;
+        }
+
+        .battle-tooltip .causes {
+            color: #9b59b6;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .battle-tooltip .consequences {
+            color: #e74c3c;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .close-tooltip {
+            position: absolute;
+            top: 8px;
+            right: 10px;
+            cursor: pointer;
+            font-size: 1.5rem;
+            color: #bdc3c7;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background-color 0.3s;
+        }
+
+        .close-tooltip:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .legend {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .legend h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #3498db;
+        }
+
+        .legend-items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            border-left: 4px solid #e74c3c;
+            cursor: pointer;
+            transition: transform 0.2s, background-color 0.2s;
+        }
+
+        .legend-item:hover {
+            background-color: #e8f4fc;
+            transform: translateX(5px);
+        }
+
+        .legend-marker {
+            width: 16px;
+            height: 16px;
+            background-color: #e74c3c;
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+        }
+
+        .legend-text {
+            font-size: 0.95rem;
+            color: #2c3e50;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .container {
+                padding: 10px;
+            }
+            
+            .map-wrapper {
+                min-height: 400px;
+            }
+            
+            .battle-tooltip {
+                width: 300px;
+                font-size: 0.9rem;
+            }
+            
+            .legend-items {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Карта основных сражений 1941 – 1945</h1>
+            <p class="subtitle">Великая Отечественная война на территории СССР</p>
+        </header>
+
+        <div class="map-container">
+            <div class="map-wrapper">
+                <img id="russia-map" src="https://upload.wikimedia.org/wikipedia/commons/thumb/d/de/Blank_map_of_Russia-gray.svg/1600px-Blank_map_of_Russia-gray.svg.png" alt="Карта России">
+                
+                <!-- Маркеры сражений будут добавлены через JavaScript -->
+                <div id="markers-container"></div>
+                
+                <!-- Всплывающая подсказка -->
+                <div id="battle-tooltip" class="battle-tooltip">
+                    <span class="close-tooltip" onclick="closeTooltip()">×</span>
+                    <h3 id="tooltip-title">Название сражения</h3>
+                    <p class="date" id="tooltip-date">Дата: </p>
+                    <p class="location" id="tooltip-location">Место: </p>
+                    <p class="causes" id="tooltip-causes">Причины: </p>
+                    <p class="consequences" id="tooltip-consequences">Последствия: </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="legend">
+            <h3>Основные сражения Великой Отечественной войны</h3>
+            <div class="legend-items" id="legend-container">
+                <!-- Легенда будет добавлена через JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Данные о сражениях (обновленные)
+        const battles = [
+            {
+                id: 1,
+                name: "Смоленское сражение",
+                date: "июль-август 1941",
+                location: "Смоленск и Смоленская область",
+                causes: "Немецкое наступление в рамках операции 'Барбаросса' с целью захвата Москвы и разгрома советских войск на центральном направлении.",
+                consequences: "1. Советские войска задержали немцев, но понесли тяжелые потери.",
+                coordinates: { x: 10, y: 42 }
+            },
+            {
+                id: 2,
+                name: "Оборона Новгорода и Пскова",
+                date: "июль-август 1941",
+                location: "Новгород и Псков",
+                causes: "Немецкое наступление в рамках операции 'Барбаросса' с целью захвата Ленинграда и разгрома советских войск на северном направлении.",
+                consequences: "1. Новгород и Псков были захвачены, но советские войска задержали немцев.",
+                coordinates: { x: 25, y: 45 }
+            },
+            {
+                id: 3,
+                name: "Битва за Ленинград",
+                date: "июль 1941 - январь 1944",
+                location: "Ленинград (Санкт-Петербург)",
+                causes: "Немецкое стремление захватить Ленинград, важный промышленный и символический центр, а также перерезать коммуникации с Мурманском и Архангельском.",
+                consequences: "1. Город выдержал блокаду, но понес огромные потери.",
+                coordinates: { x: 20, y: 40 }
+            },
+            {
+                id: 4,
+                name: "Оборона Калинина",
+                date: "октябрь 1941 - январь 1942",
+                location: "Калинин (Тверь)",
+                causes: "Немецкое наступление в рамках операции 'Тайфун' с целью захвата Москвы и разгрома советских войск на центральном направлении.",
+                consequences: "1. Калинин был захвачен, но советские войска остановили немцев.",
+                coordinates: { x: 22, y: 30 }
+            },
+            {
+                id: 5,
+                name: "Оборона Тулы",
+                date: "октябрь-ноябрь 1941",
+                location: "Тула",
+                causes: "Немецкое наступление в рамках операции 'Тайфун' с целью захвата Москвы и разгрома советских войск на южном направлении.",
+                consequences: "1. Тула не была захвачена, что сыграло важную роль в обороне Москвы.",
+                coordinates: { x: 11, y: 52 }
+            },
+            {
+                id: 6,
+                name: "Освобождение Крыма",
+                date: "апрель-май 1944",
+                location: "Крымский полуостров",
+                causes: "Советское контрнаступление с целью освобождения Крыма от немецких войск и восстановления контроля над стратегически важным регионом.",
+                consequences: "1. Крым был освобожден, что улучшило стратегическое положение СССР.",
+                coordinates: { x: 7, y: 75 }
+            },
+            {
+                id: 7,
+                name: "Выборгско-Петрозаводская операция",
+                date: "июнь-октябрь 1944",
+                location: "Карелия",
+                causes: "Советское контрнаступление с целью освобождения Карелии и вывода Финляндии из войны.",
+                consequences: "1. Финляндия вышла из войны, советские войска освободили Карелию.",
+                coordinates: { x: 13, y: 40 }
+            },
+            {
+                id: 8,
+                name: "Восточно-Прусская операция",
+                date: "январь-апрель 1945",
+                location: "Восточная Пруссия (Калининградская область)",
+                causes: "Советское наступление с целью разгрома немецких войск в Восточной Пруссии и приближения к Берлину.",
+                consequences: "1. Восточная Пруссия была захвачена, что приблизило конец войны.",
+                coordinates: { x: 18, y: 35 }
+            },
+            {
+                id: 9,
+                name: "Битва за Москву",
+                date: "сентябрь 1941 - апрель 1942",
+                location: "Москва и Московская область",
+                causes: "Немецкое наступление в рамках операции 'Тайфун' с целью захвата Москвы и разгрома советских войск.",
+                consequences: "1. Советские войска остановили немцев, что стало первым крупным поражением Германии.",
+                coordinates: { x: 15, y: 55 }
+            },
+            {
+                id: 10,
+                name: "Оборона Мурманска",
+                date: "июнь 1941 - октябрь 1944",
+                location: "Мурманск",
+                causes: "Немецкое наступление с целью захвата Мурманска, важного порта для поставок союзников, и перерезания коммуникаций с СССР.",
+                consequences: "1. Мурманск не был захвачен, что сохранило важный порт для поставок.",
+                coordinates: { x: 15, y: 50 }
+            },
+            {
+                id: 11,
+                name: "Ржевская битва",
+                date: "январь 1942 - март 1943",
+                location: "Ржев",
+                causes: "Советское контрнаступление с целью окружить и уничтожить немецкую группировку в районе Ржева и восстановить стратегическое положение на центральном направлении.",
+                consequences: "1. Обе стороны понесли тяжелые потери, стратегического успеха достигнуто не было.",
+                coordinates: { x: 24, y: 43 }
+            },
+            {
+                id: 12,
+                name: "Оборона Сталинграда",
+                date: "июль 1942 - февраль 1943",
+                location: "Сталинград (Волгоград)",
+                causes: "Немецкое наступление в рамках операции 'Блау' с целью захвата Сталинграда и выхода к Волге, чтобы перерезать коммуникации и захватить нефтяные месторождения Кавказа.",
+                consequences: "1. Советские войска окружили и уничтожили немецкую армию, что стало переломным моментом в войне.",
+                coordinates: { x: 14, y: 65 }
+            },
+            {
+                id: 13,
+                name: "Оборона Воронежа",
+                date: "июль-декабрь 1942",
+                location: "Воронеж",
+                causes: "Немецкое наступление в рамках операции 'Блау' с целью захвата Воронежа и обеспечения фланга при наступлении на Кавказ.",
+                consequences: "1. Воронеж был частично захвачен, но советские войска удержали город, что замедлило немецкое наступление.",
+                coordinates: { x: 10, y: 55 }
+            },
+            {
+                id: 14,
+                name: "Битва на Дону",
+                date: "июль-август 1942",
+                location: "Река Дон",
+                causes: "Немецкое наступление в рамках операции 'Блау' с целью захвата нефтяных месторождений Кавказа и выхода к Волге.",
+                consequences: "1. Советские войска потерпели поражение, что позволило немцам продвинуться на Кавказ.",
+                coordinates: { x: 10, y: 57 }
+            },
+            {
+                id: 15,
+                name: "Битва за Ставрополь",
+                date: "июль-август 1942",
+                location: "Ставрополь",
+                causes: "Немецкое наступление в рамках операции 'Блау' с целью захвата Ставрополя и обеспечения фланга при наступлении на Кавказ.",
+                consequences: "1. Ставрополь был захвачен, что позволило немцам продвинуться на Кавказ.",
+                coordinates: { x: 13, y: 70 }
+            },
+            {
+                id: 16,
+                name: "Курская битва",
+                date: "июль-август 1943",
+                location: "Курская дуга",
+                causes: "Немецкое наступление в рамках операции 'Цитадель' с целью окружить и уничтожить советские войска под Курском и восстановить стратегическую инициативу.",
+                consequences: "1. Советские войска отразили немецкое наступление, что стало началом стратегического наступления СССР.",
+                coordinates: { x: 12, y: 58 }
+            },
+            {
+                id: 17,
+                name: "Ленинградская операция",
+                date: "январь 1944",
+                location: "Ленинград (Санкт-Петербург)",
+                causes: "Советское контрнаступление с целью полного освобождения Ленинграда от блокады и восстановления коммуникаций с городом.",
+                consequences: "1. Ленинград был полностью освобожден от блокады, что улучшило стратегическое положение СССР.",
+                coordinates: { x: 20, y: 40 }
+            }
+        ];
+
+        // Инициализация карты и маркеров
+        document.addEventListener('DOMContentLoaded', function() {
+            const map = document.getElementById('russia-map');
+            const markersContainer = document.getElementById('markers-container');
+            const legendContainer = document.getElementById('legend-container');
+            const tooltip = document.getElementById('battle-tooltip');
+            let activeMarker = null;
+            
+            // Ждем загрузки карты
+            map.onload = function() {
+                const mapWidth = map.offsetWidth;
+                const mapHeight = map.offsetHeight;
+                
+                // Создаем маркеры на карте
+                battles.forEach(battle => {
+                    // Создаем маркер
+                    const marker = document.createElement('div');
+                    marker.className = 'battle-marker';
+                    marker.dataset.id = battle.id;
+                    marker.title = battle.name;
+                    
+                    // Позиционируем маркер
+                    const xPos = (battle.coordinates.x / 100) * mapWidth;
+                    const yPos = (battle.coordinates.y / 100) * mapHeight;
+                    
+                    marker.style.left = `${xPos}px`;
+                    marker.style.top = `${yPos}px`;
+                    
+                    // Добавляем обработчики событий
+                    marker.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        showBattleInfo(battle, marker);
+                    });
+                    
+                    marker.addEventListener('mouseenter', function() {
+                        if (!this.classList.contains('active')) {
+                            this.style.transform = 'scale(1.4)';
+                        }
+                    });
+                    
+                    marker.addEventListener('mouseleave', function() {
+                        if (!this.classList.contains('active')) {
+                            this.style.transform = 'scale(1)';
+                        }
+                    });
+                    
+                    markersContainer.appendChild(marker);
+                    
+                    // Добавляем элемент в легенду
+                    const legendItem = document.createElement('div');
+                    legendItem.className = 'legend-item';
+                    legendItem.dataset.id = battle.id;
+                    
+                    legendItem.innerHTML = `
+                        <div class="legend-marker"></div>
+                        <div class="legend-text">${battle.name}</div>
+                    `;
+                    
+                    legendItem.addEventListener('click', function() {
+                        const marker = document.querySelector(`.battle-marker[data-id="${battle.id}"]`);
+                        if (marker) {
+                            showBattleInfo(battle, marker);
+                        }
+                    });
+                    
+                    legendContainer.appendChild(legendItem);
+                });
+            };
+            
+            // Обработчик клика по карте для закрытия подсказки
+            document.querySelector('.map-wrapper').addEventListener('click', function(e) {
+                if (!tooltip.contains(e.target) && !e.target.classList.contains('battle-marker')) {
+                    closeTooltip();
+                }
+            });
+            
+            // Функция показа информации о сражении
+            function showBattleInfo(battle, marker) {
+                // Сбрасываем активный маркер
+                if (activeMarker) {
+                    activeMarker.classList.remove('active');
+                }
+                
+                // Устанавливаем новый активный маркер
+                marker.classList.add('active');
+                activeMarker = marker;
+                
+                // Заполняем подсказку
+                document.getElementById('tooltip-title').textContent = battle.name;
+                document.getElementById('tooltip-date').textContent = `Дата: ${battle.date}`;
+                document.getElementById('tooltip-location').textContent = `Место: ${battle.location}`;
+                document.getElementById('tooltip-causes').textContent = `Причины: ${battle.causes}`;
+                document.getElementById('tooltip-consequences').textContent = `Последствия: ${battle.consequences}`;
+                
+                // Позиционируем подсказку
+                const mapWidth = map.offsetWidth;
+                const mapHeight = map.offsetHeight;
+                const xPos = (battle.coordinates.x / 100) * mapWidth;
+                const yPos = (battle.coordinates.y / 100) * mapHeight;
+                
+                // Определяем положение подсказки (чтобы не выходила за границы)
+                let tooltipX = xPos + 40;
+                let tooltipY = yPos;
+                
+                // Проверяем, не выходит ли подсказка за правый край
+                if (tooltipX + 350 > mapWidth) {
+                    tooltipX = xPos - 370; // Показываем слева от маркера
+                }
+                
+                // Проверяем, не выходит ли подсказка за нижний край
+                if (tooltipY + 250 > mapHeight) {
+                    tooltipY = mapHeight - 270;
+                }
+                
+                tooltip.style.left = `${tooltipX}px`;
+                tooltip.style.top = `${tooltipY}px`;
+                tooltip.style.display = 'block';
+                
+                // Прокручиваем карту к маркеру (если нужно)
+                marker.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+            }
+            
+            // Функция закрытия подсказки
+            window.closeTooltip = function() {
+                tooltip.style.display = 'none';
+                if (activeMarker) {
+                    activeMarker.classList.remove('active');
+                    activeMarker = null;
+                }
+            };
+            
+            // Обработка ошибки загрузки карты
+            map.onerror = function() {
+                alert('Не удалось загрузить карту. Пожалуйста, проверьте подключение к интернету.');
+            };
+            
+            // Обработчик изменения размера окна
+            window.addEventListener('resize', function() {
+                // При изменении размера окна пересчитываем позиции маркеров
+                setTimeout(() => {
+                    const mapWidth = map.offsetWidth;
+                    const mapHeight = map.offsetHeight;
+                    
+                    document.querySelectorAll('.battle-marker').forEach(marker => {
+                        const battleId = marker.dataset.id;
+                        const battle = battles.find(b => b.id == battleId);
+                        
+                        if (battle) {
+                            const xPos = (battle.coordinates.x / 100) * mapWidth;
+                            const yPos = (battle.coordinates.y / 100) * mapHeight;
+                            
+                            marker.style.left = `${xPos}px`;
+                            marker.style.top = `${yPos}px`;
+                        }
+                    });
+                }, 100);
+            });
+        });
+    </script>
+</body>
+</html>
